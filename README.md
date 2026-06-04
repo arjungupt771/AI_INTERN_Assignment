@@ -72,13 +72,3 @@ Sources used:
 
 Important limitation: AI model details change weekly. Before production procurement, verify exact current model IDs, regional availability, data retention terms, and prices from the provider contract or official pricing page.
 
-## Suggested Email
-
-Subject: AI Intern Assignment - [Your Name]
-
-Dear Tekravio Labs team,
-
-Please find my AI Intern Assignment submission here: [GitHub link]. I found the reasoning-model category most interesting because it changes model selection from "which chatbot is best?" to "which tasks deserve extra thinking budget?" I would like to explore enterprise evaluation next: building small, realistic test suites that compare models on a company's real documents, code, and workflows before deployment.
-
-Regards,
-[Your Name]
