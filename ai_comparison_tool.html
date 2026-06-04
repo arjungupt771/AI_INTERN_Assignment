@@ -1,0 +1,312 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Model Comparison Tool</title>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --ink: #18202a;
+      --muted: #5d6875;
+      --line: #d8dde5;
+      --accent: #0f766e;
+      --accent-2: #2563eb;
+      --warn: #a16207;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    header {
+      background: #111827;
+      color: white;
+      padding: 24px 32px;
+      border-bottom: 4px solid var(--accent);
+    }
+    header h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: 0; }
+    header p { margin: 0; color: #d1d5db; max-width: 900px; }
+    main {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 20px;
+      padding: 24px 32px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+    section, aside {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    h2 { margin: 0 0 14px; font-size: 18px; }
+    label { display: block; font-weight: 700; margin: 14px 0 6px; }
+    select, input[type="range"] { width: 100%; }
+    select {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: white;
+      color: var(--ink);
+      font-size: 14px;
+    }
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .segmented button {
+      border: 0;
+      border-right: 1px solid var(--line);
+      padding: 10px 6px;
+      background: white;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    .segmented button:last-child { border-right: 0; }
+    .segmented button.active { background: var(--accent); color: white; }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 250px;
+    }
+    .rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--accent-2);
+      color: white;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .model { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .provider { color: var(--muted); margin-bottom: 10px; }
+    .tagline { font-weight: 700; margin-bottom: 10px; }
+    ul { padding-left: 18px; margin: 8px 0 0; }
+    li { margin: 6px 0; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 18px;
+      font-size: 14px;
+    }
+    th, td { border-bottom: 1px solid var(--line); padding: 10px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f9; }
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      margin-top: 14px;
+    }
+    .warning { color: var(--warn); font-weight: 700; }
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; padding: 16px; }
+      .cards { grid-template-columns: 1fr; }
+      header { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>AI Model Comparison Tool</h1>
+    <p>Select a business use case, budget posture, and privacy requirement. The tool recommends three practical model options and explains the trade-offs.</p>
+  </header>
+  <main>
+    <aside>
+      <h2>Inputs</h2>
+      <label for="usecase">Use case</label>
+      <select id="usecase"></select>
+
+      <label>Budget</label>
+      <div class="segmented" id="budget">
+        <button data-value="low" class="active">Low</button>
+        <button data-value="balanced">Balanced</button>
+        <button data-value="premium">Premium</button>
+      </div>
+
+      <label>Privacy</label>
+      <div class="segmented" id="privacy">
+        <button data-value="standard" class="active">Standard</button>
+        <button data-value="enterprise">Enterprise</button>
+        <button data-value="private">Private</button>
+      </div>
+
+      <p class="note"><span class="warning">Procurement note:</span> this is a decision aid, not a live pricing feed. Re-check exact model ID, region, retention policy, and price before deployment.</p>
+    </aside>
+
+    <section>
+      <h2>Recommended Models</h2>
+      <div class="cards" id="cards"></div>
+      <table>
+        <thead><tr><th>Decision factor</th><th>Recommendation logic</th></tr></thead>
+        <tbody id="logic"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script>
+    const cases = {
+      support: {
+        label: 'Customer support chatbot',
+        base: [
+          ['GPT-5.4 mini', 'OpenAI', 'Cost + speed for high-volume support', ['Strong general FAQ handling', 'Good routing/classification', 'Pair with RAG for policy accuracy']],
+          ['Claude Haiku 4.5', 'Anthropic', 'Fast, careful small model', ['Good tone control', 'Useful for support summaries', 'Lower latency than premium models']],
+          ['Gemini Flash', 'Google', 'Fast multimodal option', ['Good in Google Cloud', 'Strong extraction/summarization', 'Useful for image/document support tickets']]
+        ]
+      },
+      legal: {
+        label: 'Legal document review',
+        base: [
+          ['Claude Sonnet 4.6', 'Anthropic', 'Long-context careful review', ['Strong contract summarization', 'Good writing quality', 'Useful for clause comparison']],
+          ['GPT-5.4', 'OpenAI', 'General legal analysis plus vision', ['Good OCR + reasoning', 'Strong structured output', 'Large ecosystem']],
+          ['Gemini Pro', 'Google', 'Very long context', ['Useful for huge files', 'Strong Vertex AI fit', 'Good multimodal analysis']]
+        ]
+      },
+      code: {
+        label: 'Code review automation',
+        base: [
+          ['GitHub Copilot / Claude Sonnet', 'GitHub/Anthropic', 'Best IDE workflow fit', ['Inline code review', 'Agent mode support', 'Low adoption friction']],
+          ['Codestral', 'Mistral', 'Purpose-built code model', ['Fill-in-the-middle', 'Many languages', 'API/IDE use']],
+          ['DeepSeek Coder', 'DeepSeek/open hosts', 'Strong cost-performance', ['Useful for benchmarks', 'Self-host/API options', 'Review privacy carefully']]
+        ]
+      },
+      rag: {
+        label: 'Internal knowledge search / RAG',
+        base: [
+          ['OpenAI text-embedding-3 + GPT-5.4 mini', 'OpenAI', 'Managed embedding + cheap answer model', ['Strong default RAG stack', 'Low answer cost', 'Easy API integration']],
+          ['Cohere Embed + Command/Rerank', 'Cohere', 'Enterprise retrieval focus', ['Strong search tooling', 'Multilingual retrieval', 'Reranking options']],
+          ['BGE embeddings + Llama 4 / 3.3', 'Open-source', 'Private deployment path', ['Self-hostable', 'Good for data control', 'Lower marginal cost at scale']]
+        ]
+      },
+      reasoning: {
+        label: 'Complex multi-step reasoning',
+        base: [
+          ['GPT-5.5 / GPT-5.4', 'OpenAI', 'Reasoning-first model family', ['Strong planning', 'Good math/coding', 'Use when quality beats latency']],
+          ['DeepSeek V4 thinking / R1', 'DeepSeek/open hosts', 'Low-cost reasoning alternative', ['Open reasoning ecosystem', 'Good for experiments', 'Validate provider security']],
+          ['Claude Sonnet with thinking', 'Anthropic', 'Careful analysis plus writing', ['Good long docs', 'Strong explanations', 'Useful for strategy memos']]
+        ]
+      },
+      vision: {
+        label: 'Document image extraction',
+        base: [
+          ['GPT-5.4 vision', 'OpenAI', 'OCR plus reasoning', ['Forms and screenshots', 'Charts and invoices', 'Structured extraction']],
+          ['Claude Vision', 'Anthropic', 'Careful image/document interpretation', ['Long-context review', 'Good explanations', 'Policy-heavy workflows']],
+          ['Gemini Vision', 'Google', 'Multimodal and long context', ['Images and video', 'Good Vertex AI option', 'Large document sets']]
+        ]
+      },
+      training: {
+        label: 'Training content generation',
+        base: [
+          ['GPT-5.4', 'OpenAI', 'Quality + speed', ['Lesson drafts', 'Quizzes', 'Scenario roleplay']],
+          ['Claude Sonnet 4.6', 'Anthropic', 'Better long-form writing', ['Tone control', 'Policy-sensitive content', 'Manager-facing material']],
+          ['Gemini Pro', 'Google', 'Large source ingestion', ['Manuals/videos', 'Long-context synthesis', 'Google Workspace fit']]
+        ]
+      },
+      transcription: {
+        label: 'Real-time transcription',
+        base: [
+          ['Whisper', 'OpenAI/open-source', 'Accurate and self-hostable', ['Meetings', 'Training audio', 'Privacy-sensitive transcription']],
+          ['Azure Speech', 'Microsoft', 'Enterprise speech platform', ['Azure governance', 'Real-time captions', 'Language support']],
+          ['Google Speech-to-Text', 'Google', 'Cloud speech service', ['Good media pipeline fit', 'Scalable APIs', 'Vertex integration']]
+        ]
+      },
+      private: {
+        label: 'Private on-prem assistant',
+        base: [
+          ['Llama 4 / Llama 3.3', 'Meta/open hosts', 'Open weights and control', ['Self-hosting', 'Fine-tuning', 'Private RAG']],
+          ['Mistral / Mixtral', 'Mistral/open hosts', 'Efficient open-weight option', ['European vendor', 'Multilingual', 'Lower infra footprint']],
+          ['BGE + local LLM', 'Open-source', 'Private search-first assistant', ['Embeddings on-prem', 'Controlled data flow', 'Cost predictability']]
+        ]
+      },
+      creative: {
+        label: 'Marketing image/video concepts',
+        base: [
+          ['Midjourney / DALL-E', 'Midjourney/OpenAI', 'High-quality concept generation', ['Brand exploration', 'Social visuals', 'Fast iteration']],
+          ['FLUX', 'Black Forest Labs/open hosts', 'Strong open image model', ['Local workflows', 'Customization', 'License-specific use']],
+          ['Runway / Pika / Kling', 'Video providers', 'Short-form video generation', ['Storyboards', 'Ad concepts', 'Visual prototypes']]
+        ]
+      }
+    };
+
+    let state = { usecase: 'support', budget: 'low', privacy: 'standard' };
+    const usecase = document.getElementById('usecase');
+    Object.entries(cases).forEach(([key, value]) => {
+      const option = document.createElement('option');
+      option.value = key;
+      option.textContent = value.label;
+      usecase.appendChild(option);
+    });
+
+    function activeGroup(id, value) {
+      document.querySelectorAll(`#${id} button`).forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.value === value);
+      });
+    }
+
+    function adjustedModels() {
+      let models = [...cases[state.usecase].base];
+      if (state.privacy === 'private') {
+        const privateOptions = [
+          ['Llama 4 / Llama 3.3', 'Meta/open hosts', 'Best self-hosted control option', ['Open weights', 'Private deployment', 'Good with RAG']],
+          ['Mistral / Mixtral', 'Mistral/open hosts', 'Efficient open-weight deployment', ['European option', 'Multilingual', 'Self-host/API flexibility']],
+          ['BGE embeddings + local LLM', 'Open-source', 'Private retrieval stack', ['Good for internal docs', 'Low data exposure', 'Customizable']]
+        ];
+        models = privateOptions.concat(models.filter(m => !/OpenAI|Anthropic|Google/.test(m[1]))).slice(0, 3);
+      } else if (state.budget === 'premium') {
+        models = models.map((m, i) => i === 0 ? m : m);
+      } else if (state.budget === 'low') {
+        const cheap = {
+          legal: ['Claude Haiku 4.5 + retrieval', 'Anthropic', 'Lower-cost first pass before Sonnet escalation', ['Summarize first', 'Escalate risky clauses', 'Control review cost']],
+          reasoning: ['o4-mini / DeepSeek V4 thinking / R1', 'OpenAI/DeepSeek', 'Reasoning without maximum premium spend', ['Good cost-performance', 'Useful for coding/math', 'Escalate only hard cases']],
+          training: ['GPT-5.4 mini', 'OpenAI', 'Cheap drafts and quiz generation', ['Fast iteration', 'Good enough for first drafts', 'Human edit required']]
+        };
+        if (cheap[state.usecase]) models[0] = cheap[state.usecase];
+      }
+      return models.slice(0, 3);
+    }
+
+    function render() {
+      activeGroup('budget', state.budget);
+      activeGroup('privacy', state.privacy);
+      usecase.value = state.usecase;
+      const cards = document.getElementById('cards');
+      cards.innerHTML = '';
+      adjustedModels().forEach((m, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<div class="rank">${index + 1}</div><div class="model">${m[0]}</div><div class="provider">${m[1]}</div><div class="tagline">${m[2]}</div><ul>${m[3].map(x => `<li>${x}</li>`).join('')}</ul>`;
+        cards.appendChild(card);
+      });
+      const logic = document.getElementById('logic');
+      logic.innerHTML = `
+        <tr><td>Use case</td><td>${cases[state.usecase].label} determines the starting shortlist.</td></tr>
+        <tr><td>Budget</td><td>${state.budget === 'low' ? 'Prioritize mini/flash/haiku/open models and escalate only failures.' : state.budget === 'premium' ? 'Prioritize frontier quality and review reliability over token cost.' : 'Balance price and quality with a mid-tier default.'}</td></tr>
+        <tr><td>Privacy</td><td>${state.privacy === 'private' ? 'Prefer open-weight/self-hosted models and private embeddings.' : state.privacy === 'enterprise' ? 'Prefer Azure, Bedrock, Vertex, or enterprise provider contracts.' : 'Direct provider APIs are acceptable if data is not sensitive.'}</td></tr>
+      `;
+    }
+
+    usecase.addEventListener('change', e => { state.usecase = e.target.value; render(); });
+    document.querySelectorAll('#budget button').forEach(btn => btn.addEventListener('click', () => { state.budget = btn.dataset.value; render(); }));
+    document.querySelectorAll('#privacy button').forEach(btn => btn.addEventListener('click', () => { state.privacy = btn.dataset.value; render(); }));
+    render();
+  </script>
+</body>
+</html>
+
+
